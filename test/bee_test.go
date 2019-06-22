@@ -7,11 +7,11 @@ import (
 )
 
 func TestCreate(t *testing.T) {
-	_ = mgobee.Create("treeman", "root", "88888888", []string{})
+	_ = mgobee.Create("mydb", "me", "123", []string{})
 }
 
 func TestConnect(t *testing.T) {
-	bee := mgobee.Create("treeman", "root", "88888888", []string{})
+	bee := mgobee.Create("mydb", "me", "123", []string{})
 	err := bee.Connect("mongodb://localhost:27017")
 	if err != nil {
 		t.Error(err)
@@ -20,7 +20,7 @@ func TestConnect(t *testing.T) {
 
 /*
 func TestSmartConnect(t *testing.T) {
-	bee := Create("treeman", "root", "88888888", []string{"mongodb://localhost:27017"})
+	bee := Create("mydb", "me", "123", []string{"mongodb://localhost:27017"})
 	dbchan := make(chan error)
 	go bee.SmartConnect(dbchan)
 	err := <-dbchan
@@ -31,7 +31,7 @@ func TestSmartConnect(t *testing.T) {
 */
 
 func TextPing(t *testing.T) {
-	bee := mgobee.Create("treeman", "root", "88888888", []string{})
+	bee := mgobee.Create("mydb", "me", "123", []string{})
 	err := bee.Ping()
 	if err != nil {
 		t.Error(err)
@@ -39,7 +39,7 @@ func TextPing(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
-	bee := mgobee.Create("treeman", "root", "88888888", []string{})
+	bee := mgobee.Create("mydb", "me", "123", []string{})
 	err := bee.Connect("mongodb://localhost:27017")
 	if err != nil {
 		t.Error(err)
