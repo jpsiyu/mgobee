@@ -18,18 +18,6 @@ func TestConnect(t *testing.T) {
 	}
 }
 
-/*
-func TestSmartConnect(t *testing.T) {
-	bee := Create("mydb", "me", "123", []string{"mongodb://localhost:27017"})
-	dbchan := make(chan error)
-	go bee.SmartConnect(dbchan)
-	err := <-dbchan
-	if err != nil {
-		t.Error(err)
-	}
-}
-*/
-
 func TextPing(t *testing.T) {
 	bee := mgobee.Create("mydb", "me", "123", []string{})
 	err := bee.Ping()
