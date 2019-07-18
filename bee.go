@@ -61,28 +61,45 @@ func (bee *Bee) Connect(url string) error {
 	return nil
 }
 
-func (bee *Bee) SmartConnect(c chan error) {
-	var err error
-	for i := 0; i < len(bee.dbUrls); i++ {
-		log.Println("connect to db url", bee.dbUrls[i])
-		err = bee.Connect(bee.dbUrls[i])
-		if err != nil {
-			c <- err
-			return
-		}
-		for j := 0; j < 10; j++ {
-			err = bee.Ping()
+func (bee *Bee) SmartConnect() error{
+	var url string
+	num := len(bee.dbUrls)
+	type dbChanData struct {
+		client *mongo.Client
+		err error
+	}
+	dbChan := make(chan dbChanData, num)
+	for i := 0; i < num; i++ {
+		url = bee.dbUrls[i] 
+		log.Println("connect to db url", url)
+		go func(u string){
+			client, err := bee.creatConnectedClient(u)
 			if err != nil {
-				log.Println("ping fail", j)
-				time.Sleep(1 * time.Second)
-			} else {
-				log.Println("ping success")
-				c <- nil
+				dbChan <- dbChanData{client: client, err: err}
 				return
 			}
+			for j := 0; j < 10; j++ {
+				err := bee.isClientConnecting(client)
+				if err == nil {
+					dbChan <- dbChanData{client: client, err: err}
+					return
+				}else{
+					log.Println(u, "Ping failed")
+					time.Sleep(time.Second)
+				}
+			}
+			dbChan <- dbChanData{client: client, err: errors.New("Connect failed")}
+		}(url)
+	}
+	for i := 0; i < num; i++ {
+		chanRes := <- dbChan
+		if chanRes.err == nil {
+			bee.client = chanRes.client
+			defer close(dbChan)
+			return nil
 		}
 	}
-	c <- errors.New("connect failed")
+	return errors.New("No alive connection")
 }
 
 func (bee *Bee) Ping() error {

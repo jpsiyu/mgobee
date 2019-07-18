@@ -32,9 +32,7 @@ func TestPing(t *testing.T) {
 
 func TestSmartConnect(t *testing.T) {
 	bee := mgobee.Create("mydb", "me", "123", []string{"mongodb://mongo:27017", "mongodb://localhost:27017"})
-	dbchan := make(chan error)
-	go bee.SmartConnect(dbchan)
-	err := <-dbchan
+	err := bee.SmartConnect()
 	if err != nil {
 		t.Error(err)
 	}
