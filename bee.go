@@ -28,32 +28,12 @@ func Create(dbName, dbUser, dbPassword string, dbUrls []string) Bee {
 	return bee
 }
 
-func (bee *Bee) creatConnectedClient(url string) (*mongo.Client, error){
-	cdt := options.Credential{Username: bee.dbUser, Password: bee.dbPassword}
-	client, err := mongo.NewClient(options.Client().ApplyURI(url).SetAuth(cdt))
-	if err != nil {
-		return nil, err
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	err = client.Connect(ctx)
-	return client, err
-}
-
-func (bee *Bee) isClientConnecting(client *mongo.Client) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	err := client.Ping(ctx, readpref.Primary())	
-	return err
-} 
-
 func (bee *Bee) Connect(url string) error {
 	client, err := bee.creatConnectedClient(url)
 	if err != nil{
 		return err
 	}
-	err = bee.isClientConnecting(client)
+	err = bee.pingDB(client)
 	if err != nil{
 		return err
 	}
@@ -79,7 +59,7 @@ func (bee *Bee) SmartConnect() error{
 				return
 			}
 			for j := 0; j < 10; j++ {
-				err := bee.isClientConnecting(client)
+				err := bee.pingDB(client)
 				if err == nil {
 					dbChan <- dbChanData{client: client, err: err}
 					return
@@ -150,4 +130,24 @@ func (bee *Bee) Delete(filter *bson.M, collectionName string) error {
 	collection := bee.client.Database(bee.dbName).Collection(collectionName)
 	_, err := collection.DeleteOne(ctx, filter)
 	return err
+}
+
+func (bee *Bee) pingDB(client *mongo.Client) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	err := client.Ping(ctx, readpref.Primary())	
+	return err
+} 
+
+func (bee *Bee) creatConnectedClient(url string) (*mongo.Client, error){
+	cdt := options.Credential{Username: bee.dbUser, Password: bee.dbPassword}
+	client, err := mongo.NewClient(options.Client().ApplyURI(url).SetAuth(cdt))
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	err = client.Connect(ctx)
+	return client, err
 }
