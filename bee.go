@@ -58,17 +58,8 @@ func (bee *Bee) SmartConnect() error{
 				dbChan <- dbChanData{client: client, err: err}
 				return
 			}
-			for j := 0; j < 10; j++ {
-				err := bee.pingDB(client)
-				if err == nil {
-					dbChan <- dbChanData{client: client, err: err}
-					return
-				}else{
-					log.Println(u, "Ping failed")
-					time.Sleep(time.Second)
-				}
-			}
-			dbChan <- dbChanData{client: client, err: errors.New("Connect failed")}
+			err = bee.pingRepeat(client, 10)
+			dbChan <- dbChanData{client: client, err: err}
 		}(url)
 	}
 	for i := 0; i < num; i++ {
@@ -83,9 +74,7 @@ func (bee *Bee) SmartConnect() error{
 }
 
 func (bee *Bee) Ping() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	return bee.client.Ping(ctx, readpref.Primary())
+	return bee.pingDB(bee.client)
 }
 
 func (bee *Bee) Insert(document interface{}, collectionName string) error {
@@ -138,6 +127,19 @@ func (bee *Bee) pingDB(client *mongo.Client) error {
 	err := client.Ping(ctx, readpref.Primary())	
 	return err
 } 
+
+func (bee *Bee) pingRepeat(client *mongo.Client, count int) error {
+	var err error
+	for i := 0; i < count; i++ {
+		err = bee.pingDB(client)
+		if err == nil {
+			return nil
+		}else{
+			time.Sleep(time.Second)
+		}
+	}
+	return errors.New("Ping failed")
+}
 
 func (bee *Bee) creatConnectedClient(url string) (*mongo.Client, error){
 	cdt := options.Credential{Username: bee.dbUser, Password: bee.dbPassword}
