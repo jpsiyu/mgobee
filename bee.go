@@ -28,18 +28,37 @@ func Create(dbName, dbUser, dbPassword string, dbUrls []string) Bee {
 	return bee
 }
 
-func (bee *Bee) Connect(url string) error {
-	var err error
+func (bee *Bee) creatConnectedClient(url string) (*mongo.Client, error){
 	cdt := options.Credential{Username: bee.dbUser, Password: bee.dbPassword}
 	client, err := mongo.NewClient(options.Client().ApplyURI(url).SetAuth(cdt))
-	bee.client = client
 	if err != nil {
-		return err
+		return nil, err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	return client.Connect(ctx)
+	err = client.Connect(ctx)
+	return client, err
+}
+
+func (bee *Bee) isClientConnecting(client *mongo.Client) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	err := client.Ping(ctx, readpref.Primary())	
+	return err
+} 
+
+func (bee *Bee) Connect(url string) error {
+	client, err := bee.creatConnectedClient(url)
+	if err != nil{
+		return err
+	}
+	err = bee.isClientConnecting(client)
+	if err != nil{
+		return err
+	}
+	bee.client = client
+	return nil
 }
 
 func (bee *Bee) SmartConnect(c chan error) {
