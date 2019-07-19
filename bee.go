@@ -85,19 +85,19 @@ func (bee *Bee) Insert(document interface{}, collectionName string) error {
 	return err
 }
 
-func (bee *Bee) Update(filter, update *bson.M, collectionName string) error {
+func (bee *Bee) Update(filter, update interface{}, collectionName string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	collection := bee.client.Database(bee.dbName).Collection(collectionName)
-	_, err := collection.UpdateOne(ctx, *filter, *update)
+	_, err := collection.UpdateOne(ctx, filter, update)
 	return err
 }
 
-func (bee *Bee) Find(results *[]bson.M, filter *bson.M, collectionName string, opt ...*options.FindOptions) error {
+func (bee *Bee) Find(results *[]bson.M, filter interface{}, collectionName string, opt ...*options.FindOptions) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	collection := bee.client.Database(bee.dbName).Collection(collectionName)
-	cur, err := collection.Find(ctx, *filter, opt...)
+	cur, err := collection.Find(ctx, filter, opt...)
 	defer cur.Close(context.Background())
 	if err != nil {
 		return err
@@ -113,11 +113,19 @@ func (bee *Bee) Find(results *[]bson.M, filter *bson.M, collectionName string, o
 	return cur.Err()
 }
 
-func (bee *Bee) Delete(filter *bson.M, collectionName string) error {
+func (bee *Bee) Delete(filter interface{}, collectionName string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	collection := bee.client.Database(bee.dbName).Collection(collectionName)
 	_, err := collection.DeleteOne(ctx, filter)
+	return err
+}
+
+func (bee *Bee) Replace(filter, replacement interface{}, collectionName string) error{
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	collection := bee.client.Database(bee.dbName).Collection(collectionName)
+	_, err := collection.ReplaceOne(ctx, filter, replacement)
 	return err
 }
 
