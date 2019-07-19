@@ -28,6 +28,10 @@ func Create(dbName, dbUser, dbPassword string, dbUrls []string) Bee {
 	return bee
 }
 
+func (bee *Bee)GetReplaceOptions() *options.ReplaceOptions{
+	return options.Replace()
+}
+
 func (bee *Bee) Connect(url string) error {
 	client, err := bee.creatConnectedClient(url)
 	if err != nil{
@@ -121,11 +125,11 @@ func (bee *Bee) Delete(filter interface{}, collectionName string) error {
 	return err
 }
 
-func (bee *Bee) Replace(filter, replacement interface{}, collectionName string) error{
+func (bee *Bee) Replace(filter, replacement interface{}, collectionName string, opt *options.ReplaceOptions) error{
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	collection := bee.client.Database(bee.dbName).Collection(collectionName)
-	_, err := collection.ReplaceOne(ctx, filter, replacement)
+	_, err := collection.ReplaceOne(ctx, filter, replacement, opt)
 	return err
 }
 
