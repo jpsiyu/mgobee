@@ -89,6 +89,14 @@ func (bee *Bee) Insert(document interface{}, collectionName string) error {
 	return err
 }
 
+func (bee *Bee) InsertMany(document []interface{}, collectionName string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	collection := bee.client.Database(bee.dbName).Collection(collectionName)
+	_, err := collection.InsertMany(ctx, document)
+	return err
+}
+
 func (bee *Bee) Update(filter, update interface{}, collectionName string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
