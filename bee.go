@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -28,35 +27,39 @@ func Create(dbName, dbUser, dbPassword string, dbUrls []string) Bee {
 	return bee
 }
 
-func (bee *Bee)GetReplaceOptions() *options.ReplaceOptions{
+func (bee *Bee) GetReplaceOptions() *options.ReplaceOptions {
 	return options.Replace()
+}
+
+func (bee *Bee) GetFindOptions() *options.FindOptions {
+	return options.Find()
 }
 
 func (bee *Bee) Connect(url string) error {
 	client, err := bee.creatConnectedClient(url)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	err = bee.pingDB(client)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	bee.client = client
 	return nil
 }
 
-func (bee *Bee) SmartConnect() error{
+func (bee *Bee) SmartConnect() error {
 	var url string
 	num := len(bee.dbUrls)
 	type dbChanData struct {
 		client *mongo.Client
-		err error
+		err    error
 	}
 	dbChan := make(chan dbChanData, num)
 	for i := 0; i < num; i++ {
-		url = bee.dbUrls[i] 
+		url = bee.dbUrls[i]
 		log.Println("connect to db url", url)
-		go func(u string){
+		go func(u string) {
 			client, err := bee.creatConnectedClient(u)
 			if err != nil {
 				dbChan <- dbChanData{client: client, err: err}
@@ -67,7 +70,7 @@ func (bee *Bee) SmartConnect() error{
 		}(url)
 	}
 	for i := 0; i < num; i++ {
-		chanRes := <- dbChan
+		chanRes := <-dbChan
 		if chanRes.err == nil {
 			bee.client = chanRes.client
 			defer close(dbChan)
@@ -105,24 +108,25 @@ func (bee *Bee) Update(filter, update interface{}, collectionName string) error 
 	return err
 }
 
-func (bee *Bee) Find(results *[]bson.M, filter interface{}, collectionName string, opt ...*options.FindOptions) error {
+func (bee *Bee) Find(filter interface{}, collectionName string, opt ...*options.FindOptions) ([]interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	collection := bee.client.Database(bee.dbName).Collection(collectionName)
 	cur, err := collection.Find(ctx, filter, opt...)
 	defer cur.Close(context.Background())
 	if err != nil {
-		return err
+		return nil, err
 	}
+	results := []interface{}{}
 	for cur.Next(ctx) {
-		var result bson.M
+		var result map[string]interface{}
 		err := cur.Decode(&result)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		*results = append(*results, result)
+		results = append(results, result)
 	}
-	return cur.Err()
+	return results, cur.Err()
 }
 
 func (bee *Bee) Delete(filter interface{}, collectionName string) error {
@@ -133,7 +137,7 @@ func (bee *Bee) Delete(filter interface{}, collectionName string) error {
 	return err
 }
 
-func (bee *Bee) Replace(filter, replacement interface{}, collectionName string, opt *options.ReplaceOptions) error{
+func (bee *Bee) Replace(filter, replacement interface{}, collectionName string, opt *options.ReplaceOptions) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	collection := bee.client.Database(bee.dbName).Collection(collectionName)
@@ -144,9 +148,9 @@ func (bee *Bee) Replace(filter, replacement interface{}, collectionName string, 
 func (bee *Bee) pingDB(client *mongo.Client) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	err := client.Ping(ctx, readpref.Primary())	
+	err := client.Ping(ctx, readpref.Primary())
 	return err
-} 
+}
 
 func (bee *Bee) pingRepeat(client *mongo.Client, count int) error {
 	var err error
@@ -154,14 +158,14 @@ func (bee *Bee) pingRepeat(client *mongo.Client, count int) error {
 		err = bee.pingDB(client)
 		if err == nil {
 			return nil
-		}else{
+		} else {
 			time.Sleep(time.Second)
 		}
 	}
 	return errors.New("Ping failed")
 }
 
-func (bee *Bee) creatConnectedClient(url string) (*mongo.Client, error){
+func (bee *Bee) creatConnectedClient(url string) (*mongo.Client, error) {
 	cdt := options.Credential{Username: bee.dbUser, Password: bee.dbPassword}
 	client, err := mongo.NewClient(options.Client().ApplyURI(url).SetAuth(cdt))
 	if err != nil {
