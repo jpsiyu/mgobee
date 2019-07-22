@@ -3,7 +3,6 @@ package mgobee
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -58,7 +57,6 @@ func (bee *Bee) SmartConnect() error {
 	dbChan := make(chan dbChanData, num)
 	for i := 0; i < num; i++ {
 		url = bee.dbUrls[i]
-		log.Println("connect to db url", url)
 		go func(u string) {
 			client, err := bee.creatConnectedClient(u)
 			if err != nil {
