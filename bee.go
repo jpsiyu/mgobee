@@ -16,14 +16,14 @@ type Bee struct {
 	dbUrls                     []string
 }
 
-func Create(dbName, dbUser, dbPassword string, dbUrls []string) Bee {
+func Create(dbName, dbUser, dbPassword string, dbUrls []string) *Bee {
 	bee := Bee{
 		dbName:     dbName,
 		dbUser:     dbUser,
 		dbPassword: dbPassword,
 		dbUrls:     dbUrls,
 	}
-	return bee
+	return &bee
 }
 
 func (bee *Bee) GetReplaceOptions() *options.ReplaceOptions {
